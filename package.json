@@ -1,0 +1,6 @@
+{
+  "name": "sts-action",
+  "version": "1.0.0",
+  "description": "mini-gh-sts GitHub Action",
+  "license": "ISC"
+}
