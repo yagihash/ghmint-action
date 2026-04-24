@@ -1,9 +1,9 @@
-name: Request mini-gh-sts token
-description: Obtain a GitHub App Installation Access Token from mini-gh-sts using a GitHub Actions OIDC token
+name: Request ghmint token
+description: Obtain a GitHub App Installation Access Token from ghmint using a GitHub Actions OIDC token
 
 inputs:
   hostname:
-    description: Hostname of mini-gh-sts
+    description: Hostname of ghmint
     required: false
     default: sts.yagihash.dev
   scope:
@@ -15,7 +15,7 @@ inputs:
 
 outputs:
   token:
-    description: GitHub App Installation Access Token obtained from mini-gh-sts
+    description: GitHub App Installation Access Token obtained from ghmint
 
 runs:
   using: node24
