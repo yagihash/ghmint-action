@@ -1,1 +1,1 @@
-# sts-action
+# ghmint-action
