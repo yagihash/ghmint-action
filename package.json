@@ -1,6 +1,6 @@
 {
-  "name": "sts-action",
+  "name": "ghmint-action",
   "version": "1.0.0",
-  "description": "mini-gh-sts GitHub Action",
+  "description": "ghmint GitHub Action",
   "license": "ISC"
 }

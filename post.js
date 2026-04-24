@@ -1,4 +1,4 @@
-// mini-gh-sts action post step: revoke the GitHub App Installation Access Token.
+// ghmint action post step: revoke the GitHub App Installation Access Token.
 
 const token = process.env.STATE_token;
 

@@ -1,4 +1,4 @@
-// mini-gh-sts action: exchange GitHub Actions OIDC token for a GitHub App Installation Access Token.
+// ghmint action: exchange GitHub Actions OIDC token for a GitHub App Installation Access Token.
 // No build step required — runs directly on node24 with no external dependencies.
 
 (async function main() {
@@ -20,7 +20,7 @@
     }
 
     try {
-        // Fetch GitHub Actions OIDC token with mini-gh-sts hostname as audience.
+        // Fetch GitHub Actions OIDC token with ghmint hostname as audience.
         // The STS validates the 'aud' claim against its own hostname.
         const oidcRes = await fetch(`${actionsUrl}&audience=${hostname}`, {
             headers: { 'Authorization': `Bearer ${actionsToken}` },
@@ -42,7 +42,7 @@
         });
         if (!stsRes.ok) {
             const body = await stsRes.text();
-            throw new Error(`mini-gh-sts returned ${stsRes.status}: ${body}`);
+            throw new Error(`ghmint returned ${stsRes.status}: ${body}`);
         }
         const result = await stsRes.json();
 
