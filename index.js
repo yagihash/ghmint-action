@@ -55,6 +55,19 @@
         const crypto = require('crypto');
         const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
         console.log(`Token SHA256: ${tokenHash}`);
+        console.log(`Expires at: ${result.expires_at}`);
+
+        console.log('::group::Permissions');
+        for (const [k, v] of Object.entries(result.permissions ?? {})) {
+            console.log(`  ${k}: ${v}`);
+        }
+        console.log('::endgroup::');
+
+        console.log('::group::Repositories (all repositories if empty)');
+        for (const repo of result.repositories ?? []) {
+            console.log(`  ${repo}`);
+        }
+        console.log('::endgroup::');
 
         // Mask before writing to any output.
         console.log(`::add-mask::${token}`);
