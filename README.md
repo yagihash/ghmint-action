@@ -6,16 +6,11 @@ A GitHub Action that exchanges a GitHub Actions OIDC token for a GitHub App Inst
 
 This action uses the [GitHub Actions OIDC token](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect) to authenticate with a ghmint server and obtain a scoped GitHub App Installation Access Token. The token is automatically revoked at the end of the job.
 
-```
-GitHub Actions job
-  │
-  ├─ OIDC token (id-token: write)
-  │       │
-  │       ▼
-  │   ghmint server  ──→  GitHub App Installation Access Token
-  │       │
-  ▼       ▼
-  outputs.token  (masked in logs, revoked in post step)
+```mermaid
+flowchart TD
+    A[GitHub Actions job] -->|OIDC token| B[ghmint server]
+    B -->|GitHub App Installation Access Token| C[outputs.token]
+    C -->|auto-revoked in post step| D[🗑️ revoked]
 ```
 
 ## Usage
