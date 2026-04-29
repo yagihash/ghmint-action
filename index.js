@@ -53,7 +53,7 @@
         const token = result.token;
 
         const crypto = require('crypto');
-        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
         console.log(`Token SHA256: ${tokenHash}`);
 
         // Mask before writing to any output.
