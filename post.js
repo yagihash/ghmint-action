@@ -12,7 +12,7 @@ console.log(`::add-mask::${token}`);
 
 try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10_000);
+    const timer = setTimeout(() => controller.abort(), 60_000);
     const res = await fetch('https://api.github.com/installation/token', {
         method: 'DELETE',
         headers: {
