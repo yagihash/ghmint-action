@@ -31,7 +31,7 @@ jobs:
   example:
     runs-on: ubuntu-latest
     steps:
-      - uses: yagihash/ghmint-action@main
+      - uses: yagihash/ghmint-action@be57533eef7f69550d06f0c93eede5589158281a # v1.0.0
         id: ghmint
         with:
           scope: my-org/my-repo
