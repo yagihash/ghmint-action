@@ -1,85 +1,90 @@
 // ghmint action: exchange GitHub Actions OIDC token for a GitHub App Installation Access Token.
 // No build step required — runs directly on node24 with no external dependencies.
 
-(async function main() {
-    const actionsToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
-    const actionsUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+import { createHash } from 'crypto';
+import { appendFileSync } from 'fs';
 
-    if (!actionsToken || !actionsUrl) {
-        console.log("::error::Missing OIDC environment variables. Set 'id-token: write' in your workflow permissions.");
-        process.exit(1);
+const actionsToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+const actionsUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+
+if (!actionsToken || !actionsUrl) {
+    console.log("::error::Missing OIDC environment variables. Set 'id-token: write' in your workflow permissions.");
+    process.exit(1);
+}
+
+const hostname = process.env.INPUT_HOSTNAME || 'sts.yagihash.dev';
+const scope = process.env.INPUT_SCOPE;
+const policy = process.env.INPUT_POLICY;
+
+if (!scope || !policy) {
+    console.log("::error::Inputs 'scope' and 'policy' are required.");
+    process.exit(1);
+}
+
+function fetchWithTimeout(url, options, timeoutMs = 60_000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+try {
+    // Fetch GitHub Actions OIDC token with ghmint hostname as audience.
+    // The STS validates the 'aud' claim against its own hostname.
+    const oidcRes = await fetchWithTimeout(`${actionsUrl}&audience=${hostname}`, {
+        headers: { 'Authorization': `Bearer ${actionsToken}` },
+    });
+    if (!oidcRes.ok) {
+        const body = await oidcRes.text();
+        throw new Error(`Failed to fetch OIDC token: ${oidcRes.status} ${body}`);
+    }
+    const { value: idToken } = await oidcRes.json();
+
+    // Exchange OIDC token for a GitHub App Installation Access Token.
+    const stsRes = await fetchWithTimeout(`https://${hostname}/token`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ scope, policy }),
+    });
+    if (!stsRes.ok) {
+        const body = await stsRes.text();
+        throw new Error(`ghmint returned ${stsRes.status}: ${body}`);
+    }
+    const result = await stsRes.json();
+
+    if (!result.token) {
+        throw new Error('STS response did not contain a token');
     }
 
-    const hostname = process.env.INPUT_HOSTNAME || 'sts.yagihash.dev';
-    const scope = process.env.INPUT_SCOPE;
-    const policy = process.env.INPUT_POLICY;
+    const token = result.token;
 
-    if (!scope || !policy) {
-        console.log("::error::Inputs 'scope' and 'policy' are required.");
-        process.exit(1);
+    const tokenHash = createHash('sha256').update(token).digest('base64');
+    console.log(`Token SHA256: ${tokenHash}`);
+    console.log(`Expires at: ${result.expires_at}`);
+
+    console.log('::group::Permissions');
+    for (const [k, v] of Object.entries(result.permissions ?? {})) {
+        console.log(`  ${k}: ${v}`);
     }
+    console.log('::endgroup::');
 
-    try {
-        // Fetch GitHub Actions OIDC token with ghmint hostname as audience.
-        // The STS validates the 'aud' claim against its own hostname.
-        const oidcRes = await fetch(`${actionsUrl}&audience=${hostname}`, {
-            headers: { 'Authorization': `Bearer ${actionsToken}` },
-        });
-        if (!oidcRes.ok) {
-            const body = await oidcRes.text();
-            throw new Error(`Failed to fetch OIDC token: ${oidcRes.status} ${body}`);
-        }
-        const { value: idToken } = await oidcRes.json();
-
-        // Exchange OIDC token for a GitHub App Installation Access Token.
-        const stsRes = await fetch(`https://${hostname}/token`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${idToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ scope, policy }),
-        });
-        if (!stsRes.ok) {
-            const body = await stsRes.text();
-            throw new Error(`ghmint returned ${stsRes.status}: ${body}`);
-        }
-        const result = await stsRes.json();
-
-        if (!result.token) {
-            throw new Error('STS response did not contain a token');
-        }
-
-        const token = result.token;
-
-        const crypto = require('crypto');
-        const tokenHash = crypto.createHash('sha256').update(token).digest('base64');
-        console.log(`Token SHA256: ${tokenHash}`);
-        console.log(`Expires at: ${result.expires_at}`);
-
-        console.log('::group::Permissions');
-        for (const [k, v] of Object.entries(result.permissions ?? {})) {
-            console.log(`  ${k}: ${v}`);
-        }
-        console.log('::endgroup::');
-
-        console.log('::group::Repositories (all repositories if empty)');
-        for (const repo of result.repositories ?? []) {
-            console.log(`  ${repo}`);
-        }
-        console.log('::endgroup::');
-
-        // Mask before writing to any output.
-        console.log(`::add-mask::${token}`);
-
-        const fs = require('fs');
-        fs.appendFileSync(process.env.GITHUB_OUTPUT, `token=${token}\n`);
-        // Save to state so the post step can revoke the token.
-        fs.appendFileSync(process.env.GITHUB_STATE, `token=${token}\n`);
-
-        console.log('::notice::Successfully obtained GitHub App Installation Access Token.');
-    } catch (err) {
-        console.log(`::error::${err.stack}`);
-        process.exit(1);
+    console.log('::group::Repositories (all repositories if empty)');
+    for (const repo of result.repositories ?? []) {
+        console.log(`  ${repo}`);
     }
-})();
+    console.log('::endgroup::');
+
+    // Mask before writing to any output.
+    console.log(`::add-mask::${token}`);
+
+    appendFileSync(process.env.GITHUB_OUTPUT, `token=${token}\n`);
+    // Save to state so the post step can revoke the token.
+    appendFileSync(process.env.GITHUB_STATE, `token=${token}\n`);
+
+    console.log('::notice::Successfully obtained GitHub App Installation Access Token.');
+} catch (err) {
+    console.log(`::error::${err.stack}`);
+    process.exit(1);
+}

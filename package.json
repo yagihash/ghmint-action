@@ -2,5 +2,6 @@
   "name": "ghmint-action",
   "version": "1.0.0",
   "description": "ghmint GitHub Action",
-  "license": "ISC"
+  "license": "ISC",
+  "type": "module"
 }

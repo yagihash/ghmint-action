@@ -7,23 +7,27 @@ if (!token) {
     process.exit(0);
 }
 
-(async function main() {
-    try {
-        const res = await fetch('https://api.github.com/installation/token', {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/vnd.github+json',
-                'X-GitHub-Api-Version': '2026-03-10',
-            },
-        });
+// Mask immediately to prevent accidental log exposure in this step.
+console.log(`::add-mask::${token}`);
 
-        if (res.status === 204) {
-            console.log('Token was revoked.');
-        } else {
-            console.log(`::error::Failed to revoke token: ${res.status} ${res.statusText}`);
-        }
-    } catch (err) {
-        console.log(`::error::${err.stack}`);
+try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60_000);
+    const res = await fetch('https://api.github.com/installation/token', {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2026-03-10',
+        },
+        signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
+
+    if (res.status === 204) {
+        console.log('Token was revoked.');
+    } else {
+        console.log(`::error::Failed to revoke token: ${res.status} ${res.statusText}`);
     }
-})();
+} catch (err) {
+    console.log(`::error::${err.stack}`);
+}
