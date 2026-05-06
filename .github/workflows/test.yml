@@ -27,12 +27,7 @@ jobs:
           scope: ${{ github.repository }}
           policy: test
 
-      - name: Verify token is non-empty
+      - name: Verify token works
         env:
-          TOKEN: ${{ steps.ghmint.outputs.token }}
-        run: |
-          if [ -z "$TOKEN" ]; then
-            echo "::error::Output token is empty"
-            exit 1
-          fi
-          echo "Token obtained successfully."
+          GH_TOKEN: ${{ steps.ghmint.outputs.token }}
+        run: gh auth status
