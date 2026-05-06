@@ -61,7 +61,7 @@ try {
     const token = result.token;
 
     const tokenHash = createHash('sha256').update(token).digest('base64');
-    console.log(`Token SHA256: ${tokenHash}`);
+    console.log(`Token hash: ${tokenHash}`);
     console.log(`Expires at: ${result.expires_at}`);
 
     console.log('::group::Permissions');
